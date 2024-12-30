@@ -9,6 +9,7 @@
 #include "fileprocessor.hpp"
 #include "io.hpp"
 #include "log.hpp"
+#include "projectinfo.hpp"
 
 namespace fs = std::filesystem;
 
@@ -30,18 +31,18 @@ void print_usage() {
     std::cout << cli::usage_string() << std::endl;
 }
 
-std::list<cfind::PathEntryResult> cfind::cfind(const std::string& source, const std::string& dest, const Options& options) {
+std::list<cfind::PathEntryResult> cfind::find_duplicates(const std::string& source, const std::string& target, const Options& options) {
 
-    const std::list<std::string>& search_list{source, dest};
+    const std::list<std::string>& search_list{source, target};
 
     CDContext context;
     // fileprocessor
     read_file_sizes(search_list, context.size_map);
-    create_hashes(context.size_map);
 
     std::list<PathEntryResult> result_list;
     // analyzer
-    analyze_result(source, context.size_map, result_list);
+    auto analyzer_session = create_analyzer_session(source, options.chunk_size);
+    analyze_paths(analyzer_session, context.size_map, result_list);
 
     print_result(result_list, options);
 
@@ -57,7 +58,7 @@ int cfind::launch(int argc, char* argv[]) {
         return 0;
     }
 
-    cfind::cfind(cmd_options.source, cmd_options.destination, {cmd_options.only_non_duplicates, cmd_options.color});
+    cfind::find_duplicates(cmd_options.source, cmd_options.destination, {cmd_options.only_non_duplicates, cmd_options.color, cmd_options.chunk_size});
    
 	return 0;
 }

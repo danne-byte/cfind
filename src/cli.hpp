@@ -13,6 +13,8 @@ namespace cli {
         bool usage = false;
         bool empty = true;
         bool color = false;
+        std::uintmax_t chunk_size = 512 * 1024 * 1024; // 512MiB
+        bool invalid = true;
     };
 
     CommandOptions parse_command_line(int argc, char* argv[]);

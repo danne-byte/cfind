@@ -30,9 +30,10 @@ namespace cfind {
     struct Options {
         bool only_non_duplicates = false;
         bool use_color = false;
+        std::uintmax_t chunk_size = 512 * 1024 * 1024; // 512MiB
     };
 
-    std::list<PathEntryResult> cfind(const std::string& source, const std::string& dest, const Options& options);
+    std::list<PathEntryResult> find_duplicates(const std::string& source, const std::string& target, const Options& options);
 
     int launch(int argc, char* argv[]);
 

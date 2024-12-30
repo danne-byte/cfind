@@ -4,6 +4,9 @@
 
 namespace fs = std::filesystem;
 
+#include "crypto.hpp"
+#include "io.hpp"
+
 namespace {
 
     bool is_in_dir_path(const fs::path& dir_path, const fs::path& path) {
@@ -13,67 +16,107 @@ namespace {
         return rel_path_string.starts_with(rel_dir_string);
     }
 
-    bool is_hash_equal(unsigned char* l_hash, size_t lh_size, unsigned char* r_hash, size_t rh_size) {
+    struct FindDuplicatesStrategy {
+        const std::uintmax_t chunk_size;
+        std::map<std::string, std::vector<crypto::Digest>> checksum_map{};
 
-        if (!lh_size || !rh_size) {
-            return false;
-        }
+        void find_dups_source_path_entry(const cfind::PathEntry& source_entry, const std::list<cfind::PathEntry>& path_entry_list, std::list<cfind::PathEntry>& duplicate_list) {
+            for (const auto& path_entry : path_entry_list) {
+                if (fs::equivalent(source_entry.path, path_entry.path)) {
+                    continue; //ignore self, might be buggy
+                }
 
-        if (lh_size != rh_size) {
-            return false;
-        }
+                if (compare_hashes(source_entry, path_entry)) {
+                    duplicate_list.push_back(std::ref(path_entry)); // ERROR FIX!!
+                }
 
-        if (l_hash == NULL || r_hash == NULL) {
-            return false;
-        }
-
-        for (size_t ix=0; ix < lh_size; ++ix) {
-            unsigned char lc = *(l_hash+ix);
-            unsigned char rc = *(r_hash+ix);
-
-            if (lc != rc) {
-                return false;
             }
         }
 
-        return true;
-    }
+        crypto::Digest get_chunk_sum_by_ix(const cfind::PathEntry& path_entry, std::uintmax_t chunk_ix) {
+            std::uintmax_t num_chunks = path_entry.size / chunk_size;
+            std::uintmax_t last_chunk_size = path_entry.size % chunk_size;
+            num_chunks += last_chunk_size != 0 ? 1 : 0;
 
-    void analyze_source_path_entry(const cfind::PathEntry& path_entry, const std::list<cfind::PathEntry>& path_entry_list, std::list<cfind::PathEntry>& duplicate_list)  {
+            if (num_chunks <= chunk_ix) {
+                return crypto::Digest(); // TODO: Throw here
+            }
 
-        for (const auto& list_path_entry : path_entry_list) {
-            if (fs::equivalent(path_entry.path, list_path_entry.path)) {
-                continue; //ignore self, might be buggy
+            if (auto search = checksum_map.find(path_entry.path.string()); search != checksum_map.end()) { // cache lookup
+                const auto& chunk_vec = search->second;
+
+                if (chunk_ix < chunk_vec.size()) {
+                    return chunk_vec.at(chunk_ix);
+                }
             }
 
 
-            if (is_hash_equal(path_entry.hash, path_entry.hash_size, list_path_entry.hash, list_path_entry.hash_size)) {
-                duplicate_list.push_back(std::ref(list_path_entry));
+            auto offset = chunk_ix * chunk_size;
+            auto size = (chunk_size + offset > path_entry.size) ? path_entry.size - offset : chunk_size;
+
+            io::Binary data(size);
+            auto read_bytes = io::read_file(path_entry.path.string(), offset, size, data);
+
+            if (read_bytes == 0) {
+                return crypto::Digest(); // TODO: Throw here
             }
 
+            auto digest = crypto::sha256(data);
+
+            if (auto search = checksum_map.find(path_entry.path.string()); search != checksum_map.end()) { // update cache
+                auto& chunk_vec = checksum_map[path_entry.path.string()];
+                chunk_vec.push_back(digest); // BUG: if vector is not accessed sequentially this will not work.
+            }
+
+            else {                                                                                      // initialize new cache entry
+                checksum_map.insert({path_entry.path.string(), {digest}});
+            }
+
+
+            return digest;
         }
 
-    }
+        bool compare_hashes(const cfind::PathEntry& source_entry, const cfind::PathEntry& path_entry) {
+            std::uintmax_t num_chunks = source_entry.size / chunk_size;
+            num_chunks += source_entry.size % chunk_size != 0 ? 1 : 0;
+
+            for(std::uintmax_t ix=0; ix < num_chunks; ++ix) {
+                // 1. get_chunk_by_ix, source and path
+                auto source_chunk_checksum = get_chunk_sum_by_ix(source_entry, ix);
+                auto path_chunk_checksum = get_chunk_sum_by_ix(path_entry, ix);
+
+                // BUG: delete hash or create a cache :)
+
+                // 2. if not equal return false;
+                //if (!is_hash_equal(source_chunk_checksum, crypto::sha256_hash_size(), path_chunk_checksum, crypto::sha256_hash_size())) {
+                if (source_chunk_checksum != path_chunk_checksum) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    };
+
 }
 
-void cfind::analyze_result(const std::string& source, const std::map<std::uintmax_t, std::list<PathEntry> >& path_map, std::list<PathEntryResult>& result_list) {
+cfind::AnalyzerSession cfind::create_analyzer_session(const std::string& source, const std::uintmax_t chunk_size) {
+    return {source, chunk_size};
+}
 
+void cfind::analyze_paths(const cfind::AnalyzerSession& session, std::map<std::uintmax_t, std::list<PathEntry> >& path_map, std::list<PathEntryResult>& result_list) {
     for (const auto& [size, path_entry_list] : path_map) {
 
+        FindDuplicatesStrategy findDupsStrategy{session.chunk_size};
         for (const auto& path_entry : path_entry_list) {
 
-            const auto source_rel_string = fs::relative(source).string();
-            const auto rel_path_entry = fs::relative(path_entry.path);
-            const auto rel_path_entry_string = rel_path_entry.string();
-
-            if (is_in_dir_path(source, path_entry.path)) {
+            if (is_in_dir_path(session.source, path_entry.path)) {
                 cfind::PathEntryResult pe_result{path_entry, {}};
 
-                analyze_source_path_entry(path_entry, path_entry_list, pe_result.duplicate_list);
+                findDupsStrategy.find_dups_source_path_entry(path_entry, path_entry_list, pe_result.duplicate_list);
                 result_list.push_back(pe_result);
             }
 
         }
     }
-
 }

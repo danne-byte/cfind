@@ -2,11 +2,15 @@
 #define CRYPTO_HPP_INCLUDED
 
 #include <cstddef>
+#include <vector>
+
+#include "io.hpp"
 
 namespace crypto {
 
-    size_t allocate_sha56_buffer(unsigned char** hash);
-    size_t make_sha256(char* buf, size_t buf_size, size_t hash_size, unsigned char* hash);
+    typedef std::vector<unsigned char> Digest;
+
+    Digest sha256(const io::Binary& data);
 
 }
 

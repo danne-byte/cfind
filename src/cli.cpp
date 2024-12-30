@@ -1,5 +1,8 @@
 #include "cli.hpp"
 
+#include <cctype>
+#include <algorithm>
+
 
 namespace {
 
@@ -7,8 +10,46 @@ namespace {
     const char* OPT_NON_DUPLICATES = "--non-duplicates";
     const char* OPT_HELP = "--help";
     const char* OPT_COLOR = "--color";
+    const char* OPT_CHUNK_SIZE = "--chunk-size";
 
-    const char* USAGE = "cfind [--help] [--color] [--non-duplicates] <source> <target>";
+    const char* USAGE = "cfind [--help] [--color] [--non-duplicates] [--chunk-size=123M|K|G] <source> <target>";
+
+    bool parse_chunk_size_value(const std::string& option, cli::CommandOptions& cmd_options) {
+
+        auto equals_it = std::find(option.begin(), option.end(), '=');
+
+        if (equals_it == option.end()) { // no '=' found
+            return false;
+        }
+
+        ++equals_it;
+
+        if (equals_it == option.end()) { // no value after '='
+            return false;
+        }
+
+        std::string chunk_size_str = "";
+        unsigned int prefix_size = 0;
+        const unsigned int ILLEGAL = 1;
+
+        std::for_each(equals_it, option.end(), [&](const char& val) {
+            if(!std::isdigit(val)) {
+                prefix_size = val == 'M' ? 1024*1024 : val == 'K' ? 1024 : val =='G' ? 1024*1024*1024 : ILLEGAL;
+            }
+
+            if (prefix_size == 0) {
+                chunk_size_str.push_back(val);
+            }
+        });
+
+        if (prefix_size == ILLEGAL) {
+            return false;
+        }
+
+        cmd_options.chunk_size = std::stoul(chunk_size_str) * prefix_size;
+
+        return true;
+    }
 
     bool found_option(cli::CommandOptions& cmd_options, const std::string& option) {
 
@@ -25,11 +66,15 @@ namespace {
             cmd_options.usage = true;
             return true;
         }
-	
-	if (option == OPT_COLOR) {
-		cmd_options.color = true;
-		return true;	
-	}
+
+        if (option == OPT_COLOR) {
+            cmd_options.color = true;
+            return true;
+        }
+
+        if (option.starts_with(OPT_CHUNK_SIZE)) {
+            return parse_chunk_size_value(option, cmd_options);
+        }
 
         return false;
     }

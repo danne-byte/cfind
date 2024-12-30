@@ -10,8 +10,13 @@
 
 namespace cfind {
 
-    void analyze_result(const std::string& source, const std::map<std::uintmax_t, std::list<PathEntry> >& path_map, std::list<PathEntryResult>& result_list);
+    struct AnalyzerSession {
+        const std::string& source;
+        std::uintmax_t chunk_size;
+    };
 
+    AnalyzerSession create_analyzer_session(const std::string& source, const std::uintmax_t chunk_size);
+    void analyze_paths(const AnalyzerSession& session, std::map<std::uintmax_t, std::list<PathEntry> >& path_map, std::list<PathEntryResult>& result_list);
 }
 
 #endif // ANALYZER_HPP

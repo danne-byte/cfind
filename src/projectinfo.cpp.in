@@ -1,0 +1,15 @@
+#include "projectinfo.hpp"
+
+constexpr int cfind::version_major() {
+    return ${PROJECT_VERSION_MAJOR};
+}
+
+constexpr int cfind::version_minor() {
+    return ${PROJECT_VERSION_MINOR};
+}
+
+constexpr int cfind::version_patch() {
+    return ${PROJECT_VERSION_PATCH};
+}
+
+

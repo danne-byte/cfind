@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.25)
 # Project name and a few useful settings. Other commands can pick up the results
 project(
   cdiff 
-  VERSION 0.1
+  VERSION 0.2.0
   DESCRIPTION "A content diff utility"
   LANGUAGES CXX)
 
