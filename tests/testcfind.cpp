@@ -36,26 +36,23 @@ TEST_CASE("cfind large data set", "[cfind]") {
     REQUIRE(it != result_list.end());
     REQUIRE(it->path_entry.path.string() == "tests/data/large_files/source/1k_file");
     REQUIRE(it->duplicate_list.size() == 1);
-
     REQUIRE(it->duplicate_list.begin()->path.string() == "tests/data/large_files/dest/1k_file");
+    
+    ++it;
+    REQUIRE(it != result_list.end());
+    REQUIRE(it->path_entry.path.string() == "tests/data/large_files/source/plus_1k_file");
+    REQUIRE(it->duplicate_list.size() == 1);
+    REQUIRE(it->duplicate_list.begin()->path.string() == "tests/data/large_files/dest/plus_1k_file");
 
     ++it;
     REQUIRE(it != result_list.end());
     REQUIRE(it->path_entry.path.string() == "tests/data/large_files/source/plus_1k_file_only_in_source");
     REQUIRE(it->duplicate_list.size() == 0);
-
-    ++it;
-    REQUIRE(it != result_list.end());
-    REQUIRE(it->path_entry.path.string() == "tests/data/large_files/source/plus_1k_file");
-    REQUIRE(it->duplicate_list.size() == 1);
-
-    REQUIRE(it->duplicate_list.begin()->path.string() == "tests/data/large_files/dest/plus_1k_file");
-
+    
     ++it;
     REQUIRE(it != result_list.end());
     REQUIRE(it->path_entry.path.string() == "tests/data/large_files/source/1M_file");
     REQUIRE(it->duplicate_list.size() == 1);
-
     REQUIRE(it->duplicate_list.begin()->path.string() == "tests/data/large_files/dest/1M_file");
 
     ++it;
@@ -67,6 +64,5 @@ TEST_CASE("cfind large data set", "[cfind]") {
     REQUIRE(it != result_list.end());
     REQUIRE(it->path_entry.path.string() == "tests/data/large_files/source/plus_1M_file");
     REQUIRE(it->duplicate_list.size() == 1);
-
     REQUIRE(it->duplicate_list.begin()->path.string() == "tests/data/large_files/dest/plus_1M_file");
 }

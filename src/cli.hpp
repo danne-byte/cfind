@@ -1,6 +1,7 @@
 #ifndef CLI_HPP_INCLUDED
 #define CLI_HPP_INCLUDED
 
+#include <cstdint>
 #include <string>
 
 namespace cli {
