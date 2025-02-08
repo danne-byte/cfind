@@ -1,4 +1,3 @@
-Include(FetchContent)
 
 FetchContent_Declare(
   Catch2
@@ -15,10 +14,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(fmt)
 
 configure_file(projectinfo.cpp.in projectinfo.cpp)
-
-
-add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Werror -Wsign-conversion)
-
 add_library (cfind cdiff.cpp fileprocessor.cpp log.cpp io.cpp crypto.cpp analyzer.cpp cli.cpp console.cpp projectinfo.cpp)
 target_link_libraries(cfind PRIVATE crypto ssl fmt::fmt)
 target_compile_options(cfind PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Werror -Wsign-conversion)
