@@ -33,7 +33,7 @@ jobs:
 
     - name: Configure Tests
       # Configure environment for test
-      run: source config_tests.sh
+      run: echo "TESTDATA_ROOT=$(pwd)/tests/data" >> $GITHUB_ENV
 
     - name: Test
       working-directory: ${{github.workspace}}/build/tests
