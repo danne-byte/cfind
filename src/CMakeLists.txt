@@ -1,8 +1,9 @@
-
 FetchContent_Declare(
   fmt
   GIT_REPOSITORY https://github.com/fmtlib/fmt
-  GIT_TAG        11.0.2)
+  GIT_TAG        11.0.2
+  EXCLUDE_FROM_ALL
+)
 FetchContent_MakeAvailable(fmt)
 
 # libcfind
@@ -21,5 +22,12 @@ set_target_properties(cfind-cli PROPERTIES OUTPUT_NAME "cfind")
 target_compile_options(cfind-cli PRIVATE ${COMPILE_OPTS})
 set_property(TARGET cfind-cli PROPERTY VERSION "${PROJECT_VERSION}")
 set_property(TARGET cfind-cli PROPERTY SOVERSION "${PROJECT_VERSION_MAJOR}")
+install(TARGETS cfind-cli RUNTIME DESTINATION bin)
+
+# configure cpack
+set(CPACK_BINARY_DEB "ON")
+set(CPACK_BINARY_RPM "ON")
+set(CPACK_PACKAGE_CONTACT "danne6543")
+include(CPack)
 
 
